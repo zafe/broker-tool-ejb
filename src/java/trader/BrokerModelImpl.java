@@ -7,11 +7,14 @@ import trader.*;
 import javax.persistence.*;
 import java.security.Principal;
 import javax.annotation.Resource;
+import javax.annotation.security.DeclareRoles;
+import javax.annotation.security.RolesAllowed;
 
 @Remote @Stateless
+@DeclareRoles(value={"admin","customer"})
 public class BrokerModelImpl implements BrokerModel{
     @PersistenceContext private EntityManager em;
-  
+    
     private static BrokerModel instance = new BrokerModelImpl();
     
     public static BrokerModel getInstance() {
@@ -100,16 +103,17 @@ public class BrokerModelImpl implements BrokerModel{
 
     @Resource SessionContext ctx;
     
-    
+    @RolesAllowed(value={"admin","customer"})
     public CustomerShare[] getAllCustomerShares(String customerId) throws BrokerException {
       Principal principal = ctx.getCallerPrincipal();
       String name = principal.getName();
       
-      if(name.equalsIgnoreCase("guest") || name.equalsIgnoreCase("anonymus")){
-          throw new BrokerException("Not logged in");
+      System.out.println(name + ":" + ctx.isCallerInRole("admin"));
+      if(!ctx.isCallerInRole("admin") && !name.equalsIgnoreCase(customerId)){
+          throw new BrokerException("Not logged in as the correct user");
           }
       else{
-      
+     
       Query query = em.createNativeQuery("SELECT * FROM SHARES WHERE SSN = '" + customerId + "'", CustomerShare.class);
       List shares = query.getResultList();
       
